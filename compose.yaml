@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:4318:8080"
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+  mongo:
+    image: mongo:8.0
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  mongo-data:
