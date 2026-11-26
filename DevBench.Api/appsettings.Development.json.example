@@ -1,0 +1,13 @@
+{
+  "Api": {
+    "PublicOrigin": "http://localhost:4318"
+  },
+  "MongoDb": {
+    "ConnectionString": "mongodb://127.0.0.1:27017",
+    "DatabaseName": "DevBench"
+  },
+  "Google": {
+    "ClientId": "",
+    "ClientSecret": ""
+  }
+}

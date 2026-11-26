@@ -23,6 +23,11 @@ JSON camelCase, API tại root origin. HTTP do Electron main gọi, không cần
 - Lỗi JSON `{error:string}`: 400 input/login lỗi, 401 phiên lỗi, 404 backup
   không thuộc account/không tồn tại, 413 quá 2 MiB, 429 rate limit.
 - Rate limit 100 request/phút/IP; riêng start login 10/phút/IP.
+- Giới hạn 2 MiB tính theo byte UTF-8 của request body; snapshot sau chuẩn hóa
+  cũng đo như `JSON.stringify` của desktop.
+- `POST /backups` yêu cầu JSON; thiếu/sai `Content-Type` hoặc charset trả 400.
+- `GET /backups` bỏ qua bản có snapshot không đọc được thay vì làm lỗi cả danh
+  sách; restore đúng bản đó trả 400.
 
 ## Snapshot v2
 
@@ -59,5 +64,6 @@ V1: `set.projects` là repository; API chuyển thành project groups/repositori
 trước khi lưu/trả, kể cả snapshot cũ trong DB. Không thực thi folder/command.
 Backup không chứa source files, session hoặc Git credentials.
 
-Thay đổi contract phải cập nhật tài liệu và test hai repo. Backend validation
+Thay đổi contract phải cập nhật tài liệu và xác minh luồng desktop liên quan khi
+có môi trường phù hợp; không yêu cầu tạo lại thư mục test trong repo BE. Backend validation
 bằng C#; `shared/` của desktop chỉ chia sẻ giữa Electron main/preload/renderer.

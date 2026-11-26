@@ -1,8 +1,13 @@
 .git
+tests
+docs
+.github
 **/bin
 **/obj
 .env*
 **/appsettings.Local.json
 **/appsettings.Development.json
+**/appsettings.Production.json
+**/*.example
 artifacts
 TestResults

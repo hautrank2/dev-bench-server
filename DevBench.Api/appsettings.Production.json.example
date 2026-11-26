@@ -1,0 +1,13 @@
+{
+  "Api": {
+    "PublicOrigin": "https://your-api.example.com"
+  },
+  "MongoDb": {
+    "ConnectionString": "",
+    "DatabaseName": "DevBench"
+  },
+  "Google": {
+    "ClientId": "",
+    "ClientSecret": ""
+  }
+}

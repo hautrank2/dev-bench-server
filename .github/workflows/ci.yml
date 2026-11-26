@@ -1,18 +1,23 @@
-name: API validation
+name: API build and Azure deploy
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   api:
+    name: Build and package API
     runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:8.0
-        ports: ["27017:27017"]
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
-          --health-interval 5s --health-timeout 5s --health-retries 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -20,7 +25,76 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet restore --locked-mode
       - run: dotnet build -c Release --no-restore
-      - run: dotnet run --project tests/DevBench.Api.Tests -c Release --no-build
-        env:
-          TEST_MONGODB_URI: mongodb://127.0.0.1:27017
+      - run: dotnet publish DevBench.Api/DevBench.Api.csproj -c Release --no-build --no-restore -o artifacts/publish
       - run: docker build -t dev-bench-api:ci .
+      - name: Check publish excludes local configuration
+        shell: bash
+        run: |
+          unexpected=$(find artifacts/publish -type f \( \
+            -name '.env*' -o -name '*.example' -o \
+            -name 'appsettings.Development.json' -o \
+            -name 'appsettings.Production.json' -o \
+            -name 'appsettings.Local.json' \) -print -quit)
+          if [[ -n "$unexpected" ]]; then
+            echo '::error::Local configuration must not be included in the deployment package.'
+            exit 1
+          fi
+      - name: Create deployment ZIP
+        working-directory: artifacts/publish
+        run: zip -q -r ../devbench-api.zip .
+      - name: Upload deployment package
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: devbench-api
+          path: artifacts/devbench-api.zip
+          if-no-files-found: error
+          retention-days: 3
+
+  deploy:
+    name: Deploy DevBench to Azure
+    needs: api
+    if: >-
+      github.repository == 'hautrank2/dev-bench-server' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: azure-devbench-production
+      cancel-in-progress: false
+    env:
+      # Public resource identifiers only; authentication uses short-lived OIDC tokens.
+      AZURE_CLIENT_ID: 3c910811-4340-4727-8220-84a09a7b8427
+      AZURE_TENANT_ID: 72e998fb-9f36-4ef7-a86a-38d7694c71b6
+      AZURE_SUBSCRIPTION_ID: 4b7c100d-ac87-475c-aa79-c3aa35180a1a
+      AZURE_WEBAPP_NAME: DevBench
+      AZURE_RESOURCE_GROUP: rg-nzwalks-eastus-dev-001
+      API_ORIGIN: https://devbench-acdndvcbhrhgbkeq.westus3-01.azurewebsites.net
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: devbench-api
+          path: artifacts
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy API package
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          package: artifacts/devbench-api.zip
+          type: zip
+      - name: Check deployed API health
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-delay 10 \
+            --retry-all-errors --max-time 20 "$API_ORIGIN/health" |
+            jq --exit-status '.status == "ok"'

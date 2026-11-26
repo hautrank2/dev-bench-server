@@ -1,4 +1,78 @@
-# Kiểm tra backend .NET — 2026-11-24
+# Kiểm tra backend .NET
+
+## Bỏ workflow deploy trùng trước khi push — 2026-11-26
+
+- Đã bỏ `.github/workflows/DevBench.yml` do Visual Studio sinh; chỉ giữ `ci.yml`
+  để deploy Web App `DevBench` từ `main`.
+- Xác nhận thư mục workflow chỉ còn `ci.yml`; actionlint và `git diff --check` qua.
+- Build Release: 0 warning, 0 error; publish API thành công.
+- Chưa commit/push hoặc chạy deployment mới. Lần kiểm tra Azure trước đó thấy
+  `/health` trả 404; workflow sẽ kiểm tra lại sau deployment đầu tiên từ `main`.
+
+## GitHub Actions deploy Azure từ main — 2026-11-26
+
+- Workflow `ci.yml`: build/publish và Docker build trước khi deploy; PR chỉ kiểm
+  tra; push hoặc manual run trên `main` mới deploy Web App `DevBench` và kiểm tra `/health`.
+- Build Release local: 0 warning, 0 error; publish thành công. Actionlint 1.7.12
+  kiểm tra workflow thành công; binary được đối chiếu SHA-256 với release chính thức.
+- Đã tạo managed identity `id-devbench-github-deploy`, federation chỉ cho
+  `repo:hautrank2/dev-bench-server:ref:refs/heads/main`, và role Website Contributor
+  giới hạn đúng Web App. Đã đọc lại issuer/subject/audience và scope role để xác minh.
+- Azure xác nhận Web App Linux runtime .NET 10 và có đủ tên app settings ứng dụng;
+  không đọc/in giá trị secret trong kết quả kiểm tra.
+- Chưa commit/push thay đổi nên workflow mới chưa chạy trên GitHub, chưa xác minh
+  đăng nhập OIDC từ runner, Docker build trên runner hoặc deployment/health sau deploy.
+  Workflow bắt đầu sau khi cấu trúc BE và workflow được push lên `main`.
+
+## Sửa giới hạn backup, content type và danh sách backup — 2026-11-26
+
+- Giới hạn 2 MiB đo như `JSON.stringify`; `POST /backups` sai content type/charset
+  trả 400 thay vì 500; danh sách bỏ qua snapshot không đọc được và log ID.
+- Restore locked mode, build Release (0 warning, 0 error) và publish thành công.
+- Kiểm tra HTTP trên Kestrel bằng chương trình tạm ngoài repo, thay `ICloudStore`
+  bằng store trong bộ nhớ: body nhiều `&`/tiếng Việt dưới giới hạn được 201; đúng
+  2.097.152 byte được 201, thêm 1 byte nhận 413; ký tự đặc biệt và emoji restore
+  đúng; sai/thiếu content type, charset lạ, body rỗng/`null` nhận 400; request
+  chưa đăng nhập vẫn nhận 401; danh sách có một bản hỏng trả các bản còn lại.
+- Cách đo kích thước khớp `JSON.stringify` (Node 24) trên 3.000 document ngẫu nhiên
+  gồm chuỗi, số nguyên, boolean, null, mảng và object.
+- Chưa kiểm tra với MongoDB thật, Google OAuth, desktop, Docker hay Azure.
+
+## Hướng dẫn Claude và bỏ tham chiếu test — 2026-11-26
+
+Repo hiện không còn thư mục/project test theo yêu cầu của người dùng.
+`CLAUDE.md`, `.claude/rules/` và skill `backend-api` hướng dẫn riêng cho ASP.NET
+Core, không dùng convention UI của FE. `AGENTS.md`, solution, CI và README
+được đồng bộ để không gọi test project đã bỏ.
+
+- Build Release solution thành công: 0 warning, 0 error; publish API thành công.
+- Skill `backend-api` qua validator của skill-creator.
+- Không chạy integration test hoặc Google/MongoDB smoke trong lần cập nhật này.
+
+Các kết quả integration trong các mục bên dưới là lịch sử trước khi bỏ test,
+không phải kiểm tra được chạy lại trong lần cập nhật hướng dẫn Claude.
+
+## Tái cấu trúc theo Authly — 2026-11-26
+
+- Solution ở gốc, project `DevBench.Api/`, bỏ hoàn toàn `src`.
+- Chuyển Minimal API thành Controllers → Services/Interfaces → Repositories;
+  tách Models/Dtos, Configuration, Middlewares, Security và Validation.
+- `dotnet build -c Release -m:1 /nr:false`: 0 warning, 0 error;
+  restore NuGet và vulnerability audit thành công khi chạy ngoài sandbox.
+- 13 nhóm kiểm tra qua với memory store: 11 nhóm cũ và 2 nhóm mới kiểm tra
+  MVC model binding/error contract, cấu hình section/env/legacy.
+- Các kiểm tra HTTP vẫn chạy Kestrel thật, Google và store giả chỉ ở test executable.
+  Sandbox chặn socket localhost nên chạy integration ngoài sandbox.
+- Publish Release thành công. Kiểm tra bằng file cấu hình tạm xác nhận output
+  có API DLL và appsettings.json; không có test, .env, file .example,
+  appsettings.Development.json, appsettings.Production.json hay appsettings.Local.json.
+  File tạm được xóa sau khi kiểm tra.
+- Dockerfile, solution, project reference và README đã cập nhật đường dẫn mới.
+- Docker daemon và MongoDB localhost chưa chạy; chưa chạy lại Docker build hoặc
+  integration MongoDB thật trong lần thay đổi này. Google OAuth thật và deploy
+  Azure vẫn cần kiểm tra với tài khoản/cấu hình thực tế.
+
+## Kiểm tra ban đầu — 2026-11-24
 
 - .NET SDK 10.0.300 trên Windows.
 - Restore từ NuGet cache thành công; package lockfile cho API và test được lưu.
@@ -24,15 +98,12 @@ NuGet audit bị tắt riêng trong lệnh restore offline tại máy kiểm tra
 project/CI không tắt audit. Docker daemon chưa chạy, chưa chạy Docker build/Compose
 trên máy này. Workflow CI đã tạo nhưng chưa chạy trên GitHub. Chưa deploy hosting.
 
-Lệnh tái kiểm tra tại repo này:
+Lệnh kiểm tra theo cấu trúc hiện tại (không còn project test):
 
 ```powershell
 dotnet restore --locked-mode
 dotnet build -c Release --no-restore
-dotnet run --project tests/DevBench.Api.Tests -c Release --no-build
-$env:TEST_MONGODB_URI = "mongodb://127.0.0.1:27017"
-dotnet run --project tests/DevBench.Api.Tests -c Release --no-build
-Remove-Item Env:TEST_MONGODB_URI
+dotnet publish DevBench.Api/DevBench.Api.csproj -c Release --no-restore -o artifacts/publish
 ```
 
 Google client secret/MongoDB URI thật không được sao chép vào repo này.
