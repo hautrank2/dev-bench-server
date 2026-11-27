@@ -8,6 +8,7 @@ using DevBench.Api.Services.Interfaces;
 using DevBench.Api.Services;
 using DevBench.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi;
 
 namespace DevBench.Api;
 
@@ -33,6 +34,11 @@ public static class ApiApplication
                 options.SuppressMapClientErrors = true;
             });
         builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Services.AddSwaggerGen(options =>
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "DevBench API", Version = "v1" }));
+        }
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
@@ -50,6 +56,12 @@ public static class ApiApplication
         // Fail startup on missing configuration or database/index errors, rather than accepting unusable requests.
         _ = app.Services.GetRequiredService<ApiOptions>();
         await app.Services.GetRequiredService<ICloudStore>().InitializeAsync();
+        if (app.Environment.IsDevelopment())
+        {
+            // Swagger UI serves scripts and styles; keep it outside the API's restrictive CSP.
+            app.UseSwagger();
+            app.UseSwaggerUI(options => options.SwaggerEndpoint("v1/swagger.json", "DevBench API v1"));
+        }
         app.UseMiddleware<ApiExceptionMiddleware>();
         app.UseRateLimiter();
         app.MapControllers();

@@ -1,5 +1,28 @@
 # Kiểm tra backend .NET
 
+## Swagger cho Development — 2026-11-26
+
+- Thêm `Swashbuckle.AspNetCore` 11.0.1 và cập nhật lockfile. Chỉ đăng ký generator,
+  JSON và UI khi môi trường là Development; UI nằm trước middleware CSP của API.
+- Restore locked mode, build Release (0 warning, 0 error) và publish thành công.
+- Chạy API thật với cấu hình local hiện có: Development trả 200 cho `/swagger`,
+  `/swagger/index.html`, `/swagger/v1/swagger.json`; JSON có route health/auth.
+- Chạy lại ở Production: cả ba đường dẫn Swagger trả 404. Cả hai môi trường đều
+  có `/health` trả `ok` và API vẫn giữ CSP hạn chế. Đã dừng các tiến trình kiểm tra.
+- Không tạo dữ liệu thử, không chạy Google OAuth hoặc deploy Azure. Chưa kiểm tra
+  giao diện bằng browser; kiểm tra HTTP xác nhận UI không nhận CSP chặn script/style.
+
+## Sửa Azure OIDC subject không khớp — 2026-11-26
+
+- Log GitHub Actions báo `AADSTS700213`: token dùng subject có ID owner/repo,
+  trong khi credential `github-main` trên Azure vẫn dùng định dạng chỉ có tên.
+- Đã cập nhật subject của credential thuộc `id-devbench-github-deploy` thành
+  `repo:hautrank2@110884738/dev-bench-server@1470451954:ref:refs/heads/main`.
+- Đọc lại Azure xác nhận subject, issuer và audience khớp log của runner.
+- Chỉ cập nhật cấu hình federation và tài liệu; không đổi workflow hay runtime.
+- Chưa chạy lại job GitHub Actions hoặc deployment; cần xác minh đăng nhập OIDC
+  và `/health` ở lần chạy tiếp theo. Không commit/push thay người dùng.
+
 ## Bỏ workflow deploy trùng trước khi push — 2026-11-26
 
 - Đã bỏ `.github/workflows/DevBench.yml` do Visual Studio sinh; chỉ giữ `ci.yml`

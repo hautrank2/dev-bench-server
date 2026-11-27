@@ -64,9 +64,12 @@ public static class BackupValidator
             var url = Text(repo, "url", 0, int.MaxValue, true);
             Require(url == "" || (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"));
             Require(repo["includeInRunAll"] is JsonValue flag && flag.TryGetValue<bool>(out _));
-            repositories.Add(new JsonObject { ["id"] = id, ["groupId"] = groupId, ["name"] = name,
+            var repository = new JsonObject { ["id"] = id, ["groupId"] = groupId, ["name"] = name,
                 ["folder"] = Text(repo, "folder", 1, int.MaxValue, true), ["command"] = Text(repo, "command", 0, 8000, true),
-                ["url"] = url, ["includeInRunAll"] = repo["includeInRunAll"]!.GetValue<bool>() });
+                ["url"] = url, ["includeInRunAll"] = repo["includeInRunAll"]!.GetValue<bool>() };
+            if (repo.ContainsKey("workingDirectory"))
+                repository["workingDirectory"] = Text(repo, "workingDirectory", 0, 4096, true);
+            repositories.Add(repository);
         }
         var normalized = new JsonObject
         {

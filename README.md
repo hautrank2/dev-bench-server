@@ -64,6 +64,10 @@ dotnet run --project DevBench.Api
 Development và cổng 4318. `/health` trả `{"status":"ok"}` sau khi API kiểm tra
 cấu hình, kết nối MongoDB và tạo index thành công.
 
+Swagger UI chỉ bật trong Development: [http://localhost:4318/swagger/index.html](http://localhost:4318/swagger/index.html).
+Đường dẫn `/swagger` tự chuyển đến giao diện này; OpenAPI JSON ở `/swagger/v1/swagger.json`.
+Sau khi thay đổi code/package, dừng API cũ rồi chạy lại `dotnet run --project DevBench.Api`.
+
 ## Đặt biến môi trường ở đâu?
 
 - **Local .NET:** User Secrets (khuyến nghị) hoặc copy

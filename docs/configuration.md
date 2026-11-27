@@ -149,7 +149,7 @@ máy lập trình viên:
 Đã tạo identity và cấu hình Azure:
 
 - Federated credential `github-main`, issuer `https://token.actions.githubusercontent.com`,
-  subject `repo:hautrank2/dev-bench-server:ref:refs/heads/main`, audience
+  subject `repo:hautrank2@110884738/dev-bench-server@1470451954:ref:refs/heads/main`, audience
   `api://AzureADTokenExchange`.
 - Role `Website Contributor` chỉ scope vào Web App `DevBench`, không cấp quyền
   Contributor trên toàn subscription hay resource group.
@@ -158,6 +158,12 @@ máy lập trình viên:
   nhập được GitHub/Azure cấp qua OIDC; không cần thêm GitHub secret hoặc tải publish profile.
 - Không hủy deployment đang chạy khi có commit mới. Workflow mới chờ; các
   pull request được phép hủy lần kiểm tra cũ khi có commit mới.
+
+Repo dùng [immutable OIDC subject của GitHub](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims),
+bao gồm ID của owner và repository. Khi gặp `AADSTS700213`, đối chiếu chính xác
+`subject claim` trong log bước Azure Login với subject của `github-main` trên
+Azure; issuer và audience cũng phải khớp. Sau khi cập nhật credential, chạy lại
+job deploy bị lỗi trên GitHub Actions; không cần commit mới cho thay đổi trên Azure.
 
 Để kích hoạt trên GitHub, commit/push cấu trúc project hiện tại cùng workflow
 lên `main` (gồm `DevBench.Api/`, solution và lockfile, không chỉ file workflow).

@@ -32,7 +32,8 @@ dotnet run --project DevBench.Api
 ## Stack và cấu trúc
 
 ASP.NET Core .NET 10 (controllers), C# nullable, implicit usings, warnings as
-errors. Package ngoài chỉ có `MongoDB.Driver` và `Google.Apis.Auth`.
+errors. Package ngoài: `MongoDB.Driver`, `Google.Apis.Auth` và `Swashbuckle.AspNetCore`.
+Swagger UI/OpenAPI JSON chỉ bật trong Development, tại `/swagger` và `/swagger/v1/swagger.json`.
 Một project `DevBench.Api/`; không có và không tạo lại `src/`, `tests/`.
 
 | Đường dẫn trong `DevBench.Api/` | Trách nhiệm |

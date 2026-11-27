@@ -46,7 +46,7 @@ JSON camelCase, API tại root origin. HTTP do Electron main gọi, không cần
     "repositories": [{
       "id": "b064638c-cfc0-4618-8cbf-07f97880d363",
       "groupId": "77e1b9b0-09bb-4df2-8f38-347f677ddc42",
-      "name": "Client", "folder": "D:\\Work\\client", "command": "pnpm dev",
+      "name": "Client", "folder": "D:\\Work\\client", "workingDirectory": "apps/web", "command": "pnpm dev",
       "url": "http://localhost:3000", "includeInRunAll": true
     }]
   }
@@ -56,7 +56,12 @@ JSON camelCase, API tại root origin. HTTP do Electron main gọi, không cần
 Tối đa 1.000 project và 1.000 repository. ID duy nhất trong từng danh sách,
 groupId phải thuộc project. Tên set/project/sourceDevice 1–100 ký tự, repo name
 1–120, description tối đa 500, command tối đa 8.000. Folder bắt buộc; URL rỗng
-hoặc HTTP/HTTPS. Theme system/light/dark; terminalTheme app/midnight/paper/rose;
+hoặc HTTP/HTTPS. `workingDirectory` là chuỗi tùy chọn, trim, tối đa 4096 ký tự;
+thiếu field hoặc chuỗi rỗng thì desktop chạy tại folder repo. Đường dẫn tương
+đối được desktop resolve từ folder, đường dẫn tuyệt đối dùng trực tiếp. API giữ
+field này khi lưu/restore v1/v2, không kiểm tra filesystem và không thực thi.
+Null hoặc giá trị khác chuỗi bị từ chối. Không cần tăng schemaVersion.
+Theme system/light/dark; terminalTheme app/midnight/paper/rose;
 platform win32/darwin/linux/other. Field ngoài schema bị loại bỏ; owner lấy từ
 session, không tin client userId.
 
